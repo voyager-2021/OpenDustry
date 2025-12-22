@@ -1,0 +1,8 @@
+displayName: "Open Dustry"
+author: "voyager_2021"
+name: "opendustry"
+main: "opendustry.OpenDustry"
+description: "I don't even know."
+version: "0.1.0"
+minGameVersion: 154
+java: true

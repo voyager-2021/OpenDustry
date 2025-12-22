@@ -1,0 +1,140 @@
+apply plugin: "java"
+
+//sourceSets.main.java.srcDirs = ["src/main/java"]
+
+def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
+def sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
+
+def gitCommitHash
+
+try {
+    gitCommitHash = providers.exec {
+        commandLine 'git', 'rev-parse', '--short=12', 'HEAD'
+    }.standardOutput.asText.get().trim()
+} catch (ignored) {
+    gitCommitHash = "unknown"
+}
+
+version = "$modVersion+${gitCommitHash}"
+
+def baseArtifactName = "$modArtifact-$version"
+
+repositories {
+    mavenCentral()
+    maven { url = "https://raw.githubusercontent.com/Zelaux/MindustryRepo/master/repository" }
+    maven { url = 'https://www.jitpack.io' }
+}
+
+java {
+    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_25
+}
+
+ext {
+    mindustryVersion = project.mindustryVersion
+    jabelVersion = project.jabelVersion
+    arcVersion = project.arcVersion
+}
+
+allprojects {
+    tasks.withType(JavaCompile).tap {
+        configureEach {
+            options.compilerArgs.addAll(['--release', '17'])
+        }
+    }
+}
+
+dependencies {
+    compileOnly "com.github.Anuken.Arc:arc-core:$arcVersion"
+    compileOnly "com.github.Anuken.Mindustry:core:$mindustryVersion"
+
+    annotationProcessor "com.github.Anuken:jabel:$jabelVersion"
+}
+
+configurations.configureEach {
+    resolutionStrategy.eachDependency { details ->
+        if (details.requested.group == 'com.github.Anuken.Arc') {
+            details.useVersion "$arcVersion"
+        }
+    }
+}
+
+tasks.register('jarAndroid') {
+    dependsOn "jar"
+
+    doLast {
+        if (!sdkRoot || !new File(sdkRoot).exists())
+            throw new GradleException("No valid Android SDK found. " +
+                    "Ensure that ANDROID_HOME is set to your Android SDK directory.")
+
+        def platformRoot = new File("$sdkRoot/platforms/").listFiles().sort().reverse().find {
+            f -> new File(f, "android.jar").exists()
+        }
+
+        if (!platformRoot)
+            throw new GradleException("No android.jar found. Ensure that you have an Android platform installed.")
+
+        def dependencies = (configurations.compileClasspath.asList()
+                + configurations.runtimeClasspath.asList()
+                + [new File(platformRoot, "android.jar")]
+        ).collect { "--classpath $it.path" }.join(" ")
+
+        def d8 = isWindows ? "d8.bat" : "d8"
+
+        "$d8 $dependencies --min-api 14 --output ${project.name}Android.jar ${project.name}Desktop.jar"
+                .execute(null, new File("build/libs")).waitForProcessOutput(System.out, System.err)
+    }
+}
+
+jar {
+    archiveFileName = "$baseArtifactName-Desktop.jar"
+
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+
+    from(projectDir) {
+        include "mod.hjson"
+    }
+
+    from("assets/") {
+        include "**"
+    }
+
+    manifest {
+        attributes(
+                'Manifest-Version': '1.0',
+                'Implementation-Version': modVersion,
+                'Git-Commit': gitCommitHash
+        )
+    }
+}
+
+tasks.register('deploy', Jar) {
+    dependsOn "jarAndroid"
+    dependsOn jar
+
+    archiveFileName = "${baseArtifactName}.jar"
+
+    from { [zipTree("build/libs/$archiveFileName-Desktop.jar"), zipTree("build/libs/$archiveFileName-Android.jar")] }
+
+    doLast {
+        delete {
+            delete "build/libs/$archiveFileName-Android.jar"
+        }
+    }
+}
+
+tasks.register('install') {
+    dependsOn jar
+
+    def installDir = project.findProperty("installDir") ?: System.getenv("MOD_INSTALL_DIR") ?: "$rootDir/install"
+
+
+    doLast {
+        copy {
+            from "build/libs/${baseArtifactName}-Desktop.jar"
+            into installDir
+        }
+    }
+}
