@@ -1,7 +1,5 @@
 apply plugin: "java"
 
-//sourceSets.main.java.srcDirs = ["src/main/java"]
-
 def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
 def sdkRoot = System.getenv("ANDROID_HOME") ?: System.getenv("ANDROID_SDK_ROOT")
 
@@ -18,6 +16,7 @@ try {
 version = "$modVersion+${gitCommitHash}"
 
 def baseArtifactName = "$modArtifact-$version"
+def installArtifactName = "${modArtifact}.jar"
 
 repositories {
     mavenCentral()
@@ -130,11 +129,11 @@ tasks.register('install') {
 
     def installDir = project.findProperty("installDir") ?: System.getenv("MOD_INSTALL_DIR") ?: "$rootDir/install"
 
-
     doLast {
         copy {
             from "build/libs/${baseArtifactName}-Desktop.jar"
             into installDir
+            rename { installArtifactName }
         }
     }
 }

@@ -31,19 +31,6 @@ public class ODPlanets {
                     Color.valueOf("#ffe371"),
                     Color.valueOf("#f4ee8e")
             );
-        }};
-
-        kerbal = new Planet("kerbal", milkyway, 1f, 4) {{
-            accessible = true;
-            alwaysUnlocked = true;
-            startSector = 0;
-
-            solarSystem = milkyway;
-            orbitRadius = 40f;
-            rotateTime = 23f * 60f;
-
-            generator = new BlankPlanetGenerator();
-            meshLoader = () -> new HexMesh(this, 6);
             cloudMeshLoader = () -> new MultiMesh(
                     new HexSkyMesh(
                             this,
@@ -116,6 +103,45 @@ public class ODPlanets {
                             3834,
                             Pal.sapBullet.cpy().mul(1.075f).lerp(Color.white, 0.075f),
                             Pal.sapBullet.cpy().mul(1.075f).lerp(Color.white, 0.075f)
+                    )
+            );
+        }};
+
+        kerbal = new Planet("kerbal", milkyway, 1f, 4) {{
+            accessible = true;
+            alwaysUnlocked = true;
+            startSector = 0;
+
+            solarSystem = milkyway;
+            orbitRadius = 40f;
+            rotateTime = 23f * 60f;
+
+            generator = new BlankPlanetGenerator();
+            meshLoader = () -> new HexMesh(this, 6);
+            cloudMeshLoader = () -> new MultiMesh(
+                    new HexSkyMesh(
+                            this,
+                            11,
+                            0.15f,
+                            0.13f,
+                            5,
+                            Color.valueOf("#78d4ff").mul(0.9f).a(0.75f),
+                            2,
+                            0.45f,
+                            0.9f,
+                            0.38f
+                    ),
+                    new HexSkyMesh(
+                            this,
+                            1,
+                            0.6f,
+                            0.16f,
+                            5,
+                            Color.white.cpy().lerp(Color.valueOf("#78d4ff"), 0.55f).a(0.75f),
+                            2,
+                            0.45f,
+                            1f,
+                            0.41f
                     )
             );
 

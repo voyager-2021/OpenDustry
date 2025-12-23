@@ -1,11 +1,9 @@
 package opendustry.util;
 
 import arc.Core;
-import arc.util.ArcRuntimeException;
 import arc.util.Log;
 import arc.util.Log.LogLevel;
 import arc.util.Strings;
-import arc.util.OS;
 import mindustry.Vars;
 import mindustry.ui.dialogs.BaseDialog;
 
@@ -70,7 +68,14 @@ public final class Logx {
             Object... args
     ) {
         String message = Strings.format(format, args);
-        String prefix = "[" + MOD_TAG + "/" + context + "] ";
+
+        String prefix;
+
+        if (context != null) {
+            prefix = "[" + MOD_TAG + "/" + context + "] ";
+        } else {
+            prefix = "[" + MOD_TAG + "] ";
+        }
 
         Log.log(level, prefix + message);
 
@@ -91,6 +96,8 @@ public final class Logx {
      * @param t     the throwable to log
      */
     private static void logThrowable(LogLevel level, Throwable t) {
+        Log.log(level, t.getClass() + ": " + t.getMessage());
+
         Log.log(level, "Caused by:");
 
         for (StackTraceElement e : t.getStackTrace()) {
